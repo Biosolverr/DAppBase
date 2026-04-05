@@ -6,6 +6,7 @@ export function generateBytes32(): `0x${string}` {
   return ('0x' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`
 }
 
+// Считаем локально через viem (идентично контракту)
 export function buildSecretHash(secret: `0x${string}`, nonce: `0x${string}`): `0x${string}` {
   return keccak256(encodeAbiParameters(parseAbiParameters('bytes32, bytes32'), [secret, nonce]))
 }
