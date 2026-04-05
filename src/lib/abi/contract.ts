@@ -1,4 +1,4 @@
-export const CONTRACT_ADDRESS = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x19F148f34c10Cdb69b2356EFE223296be653092b') as `0x${string}`
+export const CONTRACT_ADDRESS = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`
 
 export const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as `0x${string}`
 export const USDC_SEPOLIA = '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as `0x${string}`
@@ -84,6 +84,11 @@ export const ABI = [
     outputs: [{ name: 'active', type: 'bool' }, { name: 'expiryTime', type: 'uint256' }],
   },
   {
+    name: 'getPairGriefCount', type: 'function', stateMutability: 'view',
+    inputs: [{ name: 'a', type: 'address' }, { name: 'b', type: 'address' }],
+    outputs: [{ name: '', type: 'uint32' }],
+  },
+  {
     name: 'buildCommitment', type: 'function', stateMutability: 'pure',
     inputs: [
       { name: 'secretHash', type: 'bytes32' }, { name: 'nonce', type: 'bytes32' },
@@ -98,8 +103,7 @@ export const ABI = [
     inputs: [{ name: 'secret', type: 'bytes32' }, { name: 'nonce', type: 'bytes32' }],
     outputs: [{ name: '', type: 'bytes32' }],
   },
-  {
-    name: 'Initiated', type: 'event',
+  { name: 'Initiated', type: 'event',
     inputs: [
       { name: 'swapId', type: 'bytes32', indexed: true }, { name: 'initiator', type: 'address', indexed: true },
       { name: 'counterparty', type: 'address', indexed: true }, { name: 'ethAmount', type: 'uint256', indexed: false },
