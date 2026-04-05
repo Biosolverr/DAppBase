@@ -8,9 +8,10 @@ import { InitiateSwap } from '@/components/escrow/InitiateSwap'
 import { SwapCard } from '@/components/escrow/SwapCard'
 import { WithdrawPanel } from '@/components/escrow/WithdrawPanel'
 import { ReputationCard } from '@/components/escrow/ReputationCard'
+import { CollusionCheck } from '@/components/escrow/CollusionCheck'
 import { ABI, CONTRACT_ADDRESS } from '@/lib/abi/contract'
 
-type Tab = 'swaps' | 'initiate' | 'reputation'
+type Tab = 'swaps' | 'initiate' | 'reputation' | 'collusion'
 
 export default function Home() {
   const { address, isConnected } = useAccount()
@@ -78,11 +79,11 @@ export default function Home() {
       {address && <div className="mb-4"><WithdrawPanel /></div>}
 
       <div className="flex rounded-xl overflow-hidden mb-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-        {([['swaps', 'My Swaps'], ['initiate', '+ New Swap'], ['reputation', 'Rep']] as [Tab, string][]).map(([t, label]) => (
+        {([['swaps', 'Swaps'], ['initiate', '+ New'], ['reputation', 'Rep'], ['collusion', '🔍']] as [Tab, string][]).map(([t, label]) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 py-2.5 text-sm font-medium transition-colors ${tab === t ? 'text-white' : 'text-gray-400'}`}
+            className={`flex-1 py-2.5 text-xs font-medium transition-colors ${tab === t ? 'text-white' : 'text-gray-400'}`}
             style={{ background: tab === t ? 'var(--accent)' : 'transparent' }}
           >
             {label}
@@ -92,35 +93,10 @@ export default function Home() {
 
       {tab === 'initiate' && <InitiateSwap onSuccess={() => setTab('swaps')} />}
       {tab === 'reputation' && address && <ReputationCard address={address} />}
+      {tab === 'collusion' && <CollusionCheck />}
       {tab === 'swaps' && (
         <div className="space-y-4">
           <div className="flex gap-2">
             <input
               value={lookupId}
-              onChange={e => setLookupId(e.target.value)}
-              placeholder="Paste swap ID (0x...)"
-              className="flex-1 rounded-xl px-3 py-2 text-xs text-white outline-none"
-              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-            />
-            <button
-              onClick={() => setLookedUp(lookupId as `0x${string}`)}
-              className="px-3 py-2 rounded-xl text-xs font-medium text-white"
-              style={{ background: 'var(--accent)' }}
-            >
-              Load
-            </button>
-          </div>
-          {lookedUp && lookupSwap && (lookupSwap as any).state !== 0 && (
-            <SwapCard swapId={lookedUp} swap={lookupSwap} userAddress={address!} />
-          )}
-          {!lookedUp && (
-            <div className="text-center text-gray-400 text-sm py-8">
-              <p className="mb-2">No swaps loaded</p>
-              <p className="text-xs text-gray-500">Paste a Swap ID above or initiate a new swap</p>
-            </div>
-          )}
-        </div>
-      )}
-    </main>
-  )
-}
+              onChange={e => setLookupId(e.target.v
