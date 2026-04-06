@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useWriteContract, useAccount } from 'wagmi'
+import { useWriteContract } from 'wagmi'
 import { ABI, CONTRACT_ADDRESS } from '@/lib/constants'
 
 export function InitiateSwap({ onSuccess }: { onSuccess: () => void }) {
@@ -12,7 +12,6 @@ export function InitiateSwap({ onSuccess }: { onSuccess: () => void }) {
   const [isLoading, setIsLoading] = useState(false)
 
   const { writeContractAsync } = useWriteContract()
-  const { address } = useAccount()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,21 +22,17 @@ export function InitiateSwap({ onSuccess }: { onSuccess: () => void }) {
       const nonce = '0x' + '2'.repeat(64)
       const salt = '0x' + '3'.repeat(64)
 
-      const commitment = await fetch('/api/buildCommitment', {
-        method: 'POST',
-        body: JSON.stringify({ secretHash, nonce, counterparty, ethAmount, usdcAmount, duration, address, salt })
-      }).then(r => r.json())
-
       await writeContractAsync({
         address: CONTRACT_ADDRESS,
         abi: ABI,
         functionName: 'initiateFromCommit',
-        args: [commitment, salt, secretHash, nonce, counterparty, BigInt(ethAmount), BigInt(usdcAmount), BigInt(duration)],
+        args: [secretHash, nonce, counterparty, BigInt(ethAmount), BigInt(usdcAmount), BigInt(duration), salt],
         value: BigInt(ethAmount),
       })
       onSuccess()
     } catch (error) {
       console.error(error)
+      alert('Failed to create swap')
     } finally {
       setIsLoading(false)
     }
@@ -50,26 +45,26 @@ export function InitiateSwap({ onSuccess }: { onSuccess: () => void }) {
         placeholder="Counterparty address (0x0 for anyone)"
         value={counterparty}
         onChange={(e) => setCounterparty(e.target.value)}
-        className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2 text-white"
+        className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 text-white"
       />
       <input
         type="number"
         placeholder="ETH amount"
         value={ethAmount}
         onChange={(e) => setEthAmount(e.target.value)}
-        className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2 text-white"
+        className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 text-white"
       />
       <input
         type="number"
         placeholder="USDC amount"
         value={usdcAmount}
         onChange={(e) => setUsdcAmount(e.target.value)}
-        className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2 text-white"
+        className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 text-white"
       />
       <select
         value={duration}
         onChange={(e) => setDuration(e.target.value)}
-        className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2 text-white"
+        className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 text-white"
       >
         <option value="3600">1 hour</option>
         <option value="86400">1 day</option>
