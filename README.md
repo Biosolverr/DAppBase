@@ -41,7 +41,7 @@ SecureSwap allows two parties to exchange ETH and USDC without a trusted interme
 
 - **Next.js 14** — App Router
 - **OnchainKit** — Base Smart Wallet provider
-- **wagmi v2 + viem v2** — contract interactions
+- **wagmi v2 + viem  v2** — contract interactions
 - **TanStack Query** — data fetching
 - **Tailwind CSS** — styling
 
