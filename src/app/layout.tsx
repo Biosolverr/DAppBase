@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { Providers } from './providers'
-import '@coinbase/onchainkit/styles.css'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -10,9 +9,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
     <html lang="en">
       <body>
