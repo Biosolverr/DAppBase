@@ -1,188 +1,57 @@
 'use client'
 
-import { useState } from 'react'
-import { useAccount, useReadContract, useConnect, useDisconnect } from 'wagmi'
+import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { baseAccount } from '@wagmi/connectors'
-import { InitiateSwap } from '@/components/escrow/InitiateSwap'
-import { SwapCard } from '@/components/escrow/SwapCard'
-import { WithdrawPanel } from '@/components/escrow/WithdrawPanel'
-import { ReputationCard } from '@/components/escrow/ReputationCard'
-import { CollusionCheck } from '@/components/escrow/CollusionCheck'
-import { ABI, CONTRACT_ADDRESS } from '@/lib/abi/contract'
-
-type Tab = 'swaps' | 'initiate' | 'reputation' | 'collusion'
 
 export default function Home() {
   const { address, isConnected } = useAccount()
-  const { connect } = useConnect()
+  const { connect, isPending } = useConnect()
   const { disconnect } = useDisconnect()
-  const [tab, setTab] = useState<Tab>('swaps')
-  const [lookupId, setLookupId] = useState('')
-  const [lookedUp, setLookedUp] = useState<`0x${string}` | null>(null)
-
-  const { data: lookupSwap } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: ABI,
-    functionName: 'getSwap',
-    args: [lookedUp as `0x${string}`],
-    query: { enabled: !!lookedUp },
-  })
-
-  const handleConnect = () => {
-    connect({ connector: baseAccount({ appName: 'SecureSwap' }) })
-  }
 
   if (!isConnected) {
     return (
-      <main
-        className="min-h-screen flex flex-col items-center justify-center p-6"
-        style={{ background: 'var(--bg)' }}
-      >
-        <div className="w-full max-w-sm text-center">
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
-            style={{ background: 'var(--accent)' }}
-          >
-            <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-              <path d="M18 5L31 18L18 31L5 18L18 5Z" fill="white" fillOpacity="0.9"/>
-              <path d="M18 11L25 18L18 25L11 18L18 11Z" fill="white"/>
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold mb-2">SecureSwap</h1>
-          <p className="text-gray-400 text-sm mb-8">
-            Trustless ETH to USDC atomic swaps on Base
-          </p>
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-white mb-4">SecureSwap</h1>
+          <p className="text-gray-400 mb-8">Trustless ETH ⇄ USDC on Base</p>
           <button
-            onClick={handleConnect}
-            className="px-6 py-3 rounded-xl font-medium text-white"
-            style={{ background: 'var(--accent)' }}
+            onClick={() => connect({ connector: baseAccount({ appName: 'SecureSwap' }) })}
+            disabled={isPending}
+            className="bg-blue-600 text-white px-8 py-3 rounded-xl font-medium disabled:opacity-50"
           >
-            Connect Base Account
+            {isPending ? 'Connecting...' : 'Connect Base Account'}
           </button>
-          <p className="text-xs text-gray-500 mt-4">Powered by Base Account SDK</p>
+          <p className="text-gray-500 text-sm mt-8">
+            Requires Coinbase Wallet extension
+          </p>
         </div>
-      </main>
+      </div>
     )
   }
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: 'swaps', label: 'Swaps' },
-    { key: 'initiate', label: '+ New' },
-    { key: 'reputation', label: 'Rep' },
-    { key: 'collusion', label: 'Check' },
-  ]
-
   return (
-    <main
-      className="min-h-screen max-w-lg mx-auto p-4"
-      style={{ background: 'var(--bg)' }}
-    >
-      <div className="flex items-center justify-between py-4 mb-4">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center"
-            style={{ background: 'var(--accent)' }}
-          >
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path d="M9 2L16 9L9 16L2 9L9 2Z" fill="white" fillOpacity="0.9"/>
-              <path d="M9 5.5L12.5 9L9 12.5L5.5 9L9 5.5Z" fill="white"/>
-            </svg>
-          </div>
-          <span className="font-bold">SecureSwap</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-400">
-            {address?.slice(0, 6)}...{address?.slice(-4)}
-          </span>
-          <button
-            onClick={() => disconnect()}
-            className="text-xs text-gray-400 hover:text-white"
-          >
-            Disconnect
-          </button>
-        </div>
-      </div>
-
-      {address && (
-        <div className="mb-4">
-          <WithdrawPanel refetch={() => {}} />
-        </div>
-      )}
-
-      <div
-        className="flex rounded-xl overflow-hidden mb-4"
-        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-      >
-        {tabs.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className="flex-1 py-2.5 text-xs font-medium transition-colors"
-            style={{
-              background: tab === key ? 'var(--accent)' : 'transparent',
-              color: tab === key ? '#fff' : '#6B7280',
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'initiate' && (
-        <InitiateSwap onSuccess={() => setTab('swaps')} />
-      )}
-
-      {tab === 'reputation' && address && (
-        <ReputationCard address={address} />
-      )}
-
-      {tab === 'collusion' && (
-        <CollusionCheck />
-      )}
-
-      {tab === 'swaps' && (
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            <input
-              value={lookupId}
-              onChange={e => setLookupId(e.target.value)}
-              placeholder="Paste swap ID (0x...)"
-              className="flex-1 rounded-xl px-3 py-2 text-xs text-white outline-none"
-              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-            />
+    <div className="min-h-screen bg-black text-white p-6">
+      <div className="max-w-md mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-xl font-bold">SecureSwap</h1>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-400">
+              {address?.slice(0, 6)}...{address?.slice(-4)}
+            </span>
             <button
-              onClick={() => setLookedUp(lookupId as `0x${string}`)}
-              className="px-3 py-2 rounded-xl text-xs font-medium text-white"
-              style={{ background: 'var(--accent)' }}
+              onClick={() => disconnect()}
+              className="text-sm text-red-400 hover:text-red-300"
             >
-              Load
+              Disconnect
             </button>
           </div>
-
-          {lookedUp && lookupSwap && (lookupSwap as any).state !== 0 && (
-            <SwapCard
-              swapId={lookedUp}
-              swap={lookupSwap}
-              userAddress={address!}
-            />
-          )}
-
-          {lookedUp && lookupSwap && (lookupSwap as any).state === 0 && (
-            <div className="text-center text-gray-400 text-sm py-4">
-              Swap not found
-            </div>
-          )}
-
-          {!lookedUp && (
-            <div className="text-center text-gray-400 text-sm py-8">
-              <p className="mb-2">No swaps loaded</p>
-              <p className="text-xs text-gray-500">
-                Paste a Swap ID above or initiate a new swap
-              </p>
-            </div>
-          )}
         </div>
-      )}
-    </main>
+        
+        <div className="bg-gray-900 rounded-xl p-6 text-center">
+          <p className="text-green-400 mb-2">✓ Connected to Base</p>
+          <p className="text-gray-400 text-sm">Your wallet is ready</p>
+        </div>
+      </div>
+    </div>
   )
 }
