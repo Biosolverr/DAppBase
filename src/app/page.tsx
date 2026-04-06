@@ -1,5 +1,7 @@
 'use client'
 
+import { InitiateSwap } from '@/components/InitiateSwap'
+import { WithdrawPanel } from '@/components/WithdrawPanel'
 import { useState, useEffect } from 'react'
 import { useAccount, useConnect, useDisconnect, useReadContract } from 'wagmi'
 import { baseAccount } from '@wagmi/connectors'
