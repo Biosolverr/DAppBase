@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { useAccount, useChainId, useWriteContract, useReadContract } from 'wagmi'
+import { useAccount, useWriteContract, useReadContract } from 'wagmi'
 import { parseEther, parseUnits } from 'viem'
 import toast from 'react-hot-toast'
 import { Button, Card, Input } from '@/components/ui'
@@ -34,7 +34,6 @@ export function InitiateSwap({ onSuccess }: { onSuccess?: () => void }) {
     if (!ethAmt || !usdcAmt) return toast.error('Fill ETH and USDC amounts')
     if (parseFloat(ethAmt) < 0.001) return toast.error('Min ETH: 0.001')
     if (parseFloat(usdcAmt) < 1) return toast.error('Min USDC: 1')
-    if (canInit && !(canInit as any)[0]) return toast.error((canInit as any)[1] || 'Cannot initiate now')
     setLoading(true)
     try {
       const secret = generateBytes32()
@@ -47,7 +46,7 @@ export function InitiateSwap({ onSuccess }: { onSuccess?: () => void }) {
       const cp = (counterparty || '0x0000000000000000000000000000000000000000') as `0x${string}`
       const commitment = buildCommitment({ secretHash, nonce, counterparty: cp, ethAmount, usdcAmount, duration: durationBig, initiator: address, salt })
       const tid = toast.loading('Step 1/2: Submitting commitment...')
-      await writeContractAsync({ address: CONTRACT_ADDRESS, abi: ABI, functionName: 'commitInitiate', args: [commitment] })
+      await (writeContractAsync as any)({ address: CONTRACT_ADDRESS, abi: ABI, functionName: 'commitInitiate', args: [commitment], account: address })
       toast.dismiss(tid)
       toast.success('Commitment submitted!')
       localStorage.setItem(`swap_pending_${commitment}`, JSON.stringify({ secret, nonce, salt, secretHash, commitment }))
@@ -65,13 +64,14 @@ export function InitiateSwap({ onSuccess }: { onSuccess?: () => void }) {
     setLoading(true)
     try {
       const tid = toast.loading('Step 2/2: Initiating swap...')
-      await writeContractAsync({
+      await (writeContractAsync as any)({
         address: CONTRACT_ADDRESS, abi: ABI, functionName: 'initiateFromCommit',
         args: [params.commitment, params.salt, params.secretHash, params.nonce, params.cp, params.ethAmount, params.usdcAmount, params.durationBig],
         value: requiredEth as bigint,
+        account: address,
       })
       toast.dismiss(tid)
-      toast.success('Swap initiated! 🎉')
+      toast.success('Swap initiated!')
       onSuccess?.()
     } catch (e: any) {
       toast.error(e.shortMessage || e.message || 'Error')
@@ -93,7 +93,7 @@ export function InitiateSwap({ onSuccess }: { onSuccess?: () => void }) {
         <h3 className="font-bold mb-1">Step 2: Initiate Swap</h3>
         <p className="text-xs text-gray-400 mb-4">Commitment submitted. Now lock your ETH.</p>
         <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 mb-4">
-          <p className="text-xs text-yellow-300 font-medium mb-1">⚠️ Save your secret!</p>
+          <p className="text-xs text-yellow-300 font-medium mb-1">Save your secret!</p>
           <p className="text-xs text-gray-400 font-mono break-all">{params.secret}</p>
           <p className="text-xs text-gray-500 mt-1">Saved in browser storage automatically.</p>
         </div>
@@ -101,15 +101,15 @@ export function InitiateSwap({ onSuccess }: { onSuccess?: () => void }) {
           <div className="flex justify-between"><span className="text-gray-400">ETH</span><span>{params.ethAmt} ETH</span></div>
           <div className="flex justify-between"><span className="text-gray-400">USDC</span><span>{params.usdcAmt} USDC</span></div>
           {requiredEth && (
-            <div className="flex justify-between text-yellow-400">
+            <div className="flex justify-between">
               <span className="text-gray-400">Total to send</span>
-              <span>{(Number(requiredEth) / 1e18).toFixed(6)} ETH</span>
+              <span className="text-yellow-400">{(Number(requiredEth) / 1e18).toFixed(6)} ETH</span>
             </div>
           )}
         </div>
         <div className="flex gap-2">
           <Button variant="ghost" onClick={() => setStep('form')} size="sm">Back</Button>
-          <Button onClick={handleInitiate} loading={loading} fullWidth>Initiate & Lock ETH</Button>
+          <Button onClick={handleInitiate} loading={loading} fullWidth>Initiate and Lock ETH</Button>
         </div>
       </Card>
     )
@@ -121,13 +121,14 @@ export function InitiateSwap({ onSuccess }: { onSuccess?: () => void }) {
       <div className="space-y-3">
         <Input label="ETH Amount (you send)" value={ethAmt} onChange={setEthAmt} placeholder="0.01" type="number" suffix="ETH" hint="Min 0.001 ETH" />
         <Input label="USDC Amount (you receive)" value={usdcAmt} onChange={setUsdcAmt} placeholder="25" type="number" suffix="USDC" hint="Min 1 USDC" />
-        <Input label="Counterparty (optional)" value={counterparty} onChange={setCounterparty} placeholder="0x... (empty = open swap)" />
+        <Input label="Counterparty (optional)" value={counterparty} onChange={setCounterparty} placeholder="0x... or leave empty" />
         <div>
           <label className="text-xs text-gray-400 font-medium block mb-1">Duration</label>
           <div className="grid grid-cols-4 gap-1">
             {durationOptions.map(o => (
               <button key={o.value} onClick={() => setDuration(o.value)}
-                className={`text-xs py-1.5 rounded-lg transition-colors ${duration === o.value ? 'bg-[#0052FF] text-white' : 'bg-[#0A0B0D] text-gray-400 border border-[#1E2028]'}`}>
+                className="text-xs py-1.5 rounded-lg transition-colors"
+                style={{ background: duration === o.value ? 'var(--accent)' : '#0A0B0D', color: duration === o.value ? '#fff' : '#6B7280', border: '1px solid var(--border)' }}>
                 {o.label}
               </button>
             ))}
@@ -139,7 +140,7 @@ export function InitiateSwap({ onSuccess }: { onSuccess?: () => void }) {
             <span className="text-yellow-400 font-medium">{(Number(requiredEth) / 1e18).toFixed(6)}</span>
           </div>
         )}
-        <Button onClick={handleCommit} loading={loading} fullWidth>Continue →</Button>
+        <Button onClick={handleCommit} loading={loading} fullWidth>Continue</Button>
       </div>
     </Card>
   )
