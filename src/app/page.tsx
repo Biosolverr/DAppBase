@@ -1,11 +1,11 @@
 'use client'
 
-import { InitiateSwap } from '@/components/InitiateSwap'
-import { WithdrawPanel } from '@/components/WithdrawPanel'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAccount, useConnect, useDisconnect, useReadContract } from 'wagmi'
 import { baseAccount } from '@wagmi/connectors'
 import { ABI, CONTRACT_ADDRESS } from '@/lib/constants'
+import { InitiateSwap } from '@/components/InitiateSwap'
+import { WithdrawPanel } from '@/components/WithdrawPanel'
 
 type Tab = 'swaps' | 'initiate' | 'reputation' | 'collusion'
 
@@ -33,15 +33,6 @@ export default function Home() {
     functionName: 'getReputation',
     args: [address],
     query: { enabled: !!address },
-  })
-
-  // Получение проверки коллюзии
-  const { data: collusion } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: ABI,
-    functionName: 'isCollusionFlagActive',
-    args: [address, lookedUp as `0x${string}`],
-    query: { enabled: !!(address && lookedUp) },
   })
 
   if (!isConnected) {
@@ -109,6 +100,13 @@ export default function Home() {
 
       {/* Main content */}
       <div className="max-w-lg mx-auto px-4 py-4">
+        {/* Withdraw Panel */}
+        {address && (
+          <div className="mb-4">
+            <WithdrawPanel />
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="flex rounded-xl overflow-hidden mb-6 bg-gray-900 border border-gray-800">
           {tabs.map(({ key, label }) => (
@@ -186,24 +184,11 @@ export default function Home() {
           </div>
         )}
 
-        {/* Initiate Tab - упрощенная форма */}
+        {/* Initiate Tab */}
         {tab === 'initiate' && (
           <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
             <h2 className="text-lg font-bold mb-4">Create New Swap</h2>
-            <p className="text-gray-400 text-sm mb-4">
-              To create a swap, you'll need:
-            </p>
-            <ul className="text-gray-400 text-sm space-y-2 mb-6">
-              <li>• Counterparty address (or 0x0 for anyone)</li>
-              <li>• ETH amount to swap</li>
-              <li>• USDC amount to receive</li>
-              <li>• Duration (1 hour - 7 days)</li>
-            </ul>
-            <div className="bg-gray-800 rounded-lg p-3 text-xs text-gray-300">
-              <p className="font-mono break-all">
-                Contract: {CONTRACT_ADDRESS?.slice(0, 20)}...
-              </p>
-            </div>
+            <InitiateSwap onSuccess={() => setTab('swaps')} />
           </div>
         )}
 
