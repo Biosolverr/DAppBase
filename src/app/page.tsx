@@ -2,7 +2,12 @@
 
 import { useState } from 'react'
 import { useAccount, useReadContract } from 'wagmi'
-import { ConnectWallet, Wallet, WalletDropdown, WalletDropdownDisconnect } from '@coinbase/onchainkit/wallet'
+import { 
+  ConnectWallet, 
+  Wallet, 
+  WalletDropdown, 
+  WalletDropdownDisconnect 
+} from '@coinbase/onchainkit/wallet'
 import { Identity, Avatar, Name, Address } from '@coinbase/onchainkit/identity'
 import { InitiateSwap } from '@/components/escrow/InitiateSwap'
 import { SwapCard } from '@/components/escrow/SwapCard'
@@ -50,7 +55,7 @@ export default function Home() {
           <div className="flex justify-center">
             <ConnectWallet />
           </div>
-          <p className="text-xs text-gray-500 mt-4">Powered by Base Smart Wallet</p>
+          <p className="text-xs text-gray-500 mt-4">Powered by Base + OnchainKit</p>
         </div>
       </main>
     )
