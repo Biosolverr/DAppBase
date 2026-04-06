@@ -1,14 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useAccount, useReadContract } from 'wagmi'
-import { 
-  ConnectWallet, 
-  Wallet, 
-  WalletDropdown, 
-  WalletDropdownDisconnect 
-} from '@coinbase/onchainkit/wallet'
-import { Identity, Avatar, Name, Address } from '@coinbase/onchainkit/identity'
+import { useAccount, useReadContract, useConnect, useDisconnect } from 'wagmi'
+import { baseAccount } from '@wagmi/connectors'
 import { InitiateSwap } from '@/components/escrow/InitiateSwap'
 import { SwapCard } from '@/components/escrow/SwapCard'
 import { WithdrawPanel } from '@/components/escrow/WithdrawPanel'
@@ -20,6 +14,8 @@ type Tab = 'swaps' | 'initiate' | 'reputation' | 'collusion'
 
 export default function Home() {
   const { address, isConnected } = useAccount()
+  const { connect } = useConnect()
+  const { disconnect } = useDisconnect()
   const [tab, setTab] = useState<Tab>('swaps')
   const [lookupId, setLookupId] = useState('')
   const [lookedUp, setLookedUp] = useState<`0x${string}` | null>(null)
@@ -31,6 +27,10 @@ export default function Home() {
     args: [lookedUp as `0x${string}`],
     query: { enabled: !!lookedUp },
   })
+
+  const handleConnect = () => {
+    connect({ connector: baseAccount({ appName: 'SecureSwap' }) })
+  }
 
   if (!isConnected) {
     return (
@@ -52,10 +52,14 @@ export default function Home() {
           <p className="text-gray-400 text-sm mb-8">
             Trustless ETH to USDC atomic swaps on Base
           </p>
-          <div className="flex justify-center">
-            <ConnectWallet />
-          </div>
-          <p className="text-xs text-gray-500 mt-4">Powered by Base + OnchainKit</p>
+          <button
+            onClick={handleConnect}
+            className="px-6 py-3 rounded-xl font-medium text-white"
+            style={{ background: 'var(--accent)' }}
+          >
+            Connect Base Account
+          </button>
+          <p className="text-xs text-gray-500 mt-4">Powered by Base Account SDK</p>
         </div>
       </main>
     )
@@ -86,25 +90,22 @@ export default function Home() {
           </div>
           <span className="font-bold">SecureSwap</span>
         </div>
-        <Wallet>
-          <ConnectWallet>
-            <Avatar className="h-7 w-7" />
-            <Name />
-          </ConnectWallet>
-          <WalletDropdown>
-            <Identity hasCopyAddressOnClick>
-              <Avatar />
-              <Name />
-              <Address />
-            </Identity>
-            <WalletDropdownDisconnect />
-          </WalletDropdown>
-        </Wallet>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-gray-400">
+            {address?.slice(0, 6)}...{address?.slice(-4)}
+          </span>
+          <button
+            onClick={() => disconnect()}
+            className="text-xs text-gray-400 hover:text-white"
+          >
+            Disconnect
+          </button>
+        </div>
       </div>
 
       {address && (
         <div className="mb-4">
-          <WithdrawPanel />
+          <WithdrawPanel refetch={() => {}} />
         </div>
       )}
 
