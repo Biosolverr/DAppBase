@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useWriteContract } from 'wagmi'
-import { ABI, CONTRACT_ADDRESS } from '@/lib/constants'
+import { ABI, CONTRACT_ADDRESS } from '@/lib/abi/contract'
 
 export function InitiateSwap({ onSuccess }: { onSuccess: () => void }) {
   const [counterparty, setCounterparty] = useState('')
