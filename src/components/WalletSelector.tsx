@@ -13,6 +13,36 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState<string | null>(null)
 
+  // ========== ПОДКЛЮЧЕНИЕ BASE ACCOUNT (ИСПРАВЛЕНО) ==========
+  const connectBaseAccount = async () => {
+    setLoading('base')
+    setError('')
+    
+    try {
+      // Динамический импорт с правильной обработкой
+      const wagmi = await import('wagmi')
+      const connectors = await import('@wagmi/connectors')
+      
+      const { connect } = wagmi
+      const { baseAccount } = connectors
+      
+      // Создаём коннектор с правильными параметрами
+      const connector = baseAccount({ 
+        appName: 'SecureSwap',
+        appLogoUrl: 'https://d-app-base.vercel.app/logo.png'
+      })
+      
+      await connect({ connector })
+      onClose()
+      
+    } catch (err: any) {
+      console.error('Base Account error:', err)
+      setError(err?.message || 'Failed to connect Base Account. Make sure you have Coinbase Wallet extension installed.')
+    } finally {
+      setLoading(null)
+    }
+  }
+
   // ========== ПОДКЛЮЧЕНИЕ META MASK ==========
   const connectMetaMask = async () => {
     setLoading('metamask')
@@ -23,7 +53,6 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
         throw new Error('MetaMask not installed. Install it first.')
       }
       
-      // Запрашиваем доступ
       const accounts = await window.ethereum.request({
         method: 'eth_requestAccounts'
       })
@@ -32,7 +61,6 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
         throw new Error('No accounts found. Unlock MetaMask.')
       }
       
-      // Обновляем страницу, чтобы Wagmi подхватил аккаунт
       window.location.reload()
       
     } catch (err: any) {
@@ -48,7 +76,6 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
     setError('')
     
     try {
-      // Способ 1: через расширение Coinbase
       if (window.coinbaseWalletExtension) {
         const accounts = await window.coinbaseWalletExtension.request({
           method: 'eth_requestAccounts'
@@ -62,7 +89,6 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
         return
       }
       
-      // Способ 2: через window.ethereum (если активен Coinbase)
       if (window.ethereum?.isCoinbaseWallet === true) {
         const accounts = await window.ethereum.request({
           method: 'eth_requestAccounts'
@@ -80,26 +106,6 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
       
     } catch (err: any) {
       setError(err.message || 'Failed to connect Coinbase Wallet')
-    } finally {
-      setLoading(null)
-    }
-  }
-
-  // ========== ПОДКЛЮЧЕНИЕ BASE ACCOUNT ==========
-  const connectBaseAccount = async () => {
-    setLoading('base')
-    setError('')
-    
-    try {
-      const { connect } = await import('wagmi')
-      const { baseAccount } = await import('@wagmi/connectors')
-      
-      const connector = baseAccount({ appName: 'SecureSwap' })
-      await connect({ connector })
-      
-      onClose()
-    } catch (err: any) {
-      setError(err.message || 'Failed to connect Base Account')
     } finally {
       setLoading(null)
     }
@@ -160,32 +166,6 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
               <div className="text-xs text-gray-500">Browser extension</div>
             </div>
             {loading === 'metamask' && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-          </button>
-          
-          {/* WalletConnect */}
-          <button
-            onClick={async () => {
-              setLoading('walletconnect')
-              try {
-                const { connect } = await import('wagmi')
-                const { injected } = await import('@wagmi/connectors')
-                await connect({ connector: injected({ target: 'walletConnect' }) })
-                onClose()
-              } catch (err: any) {
-                setError(err.message)
-              } finally {
-                setLoading(null)
-              }
-            }}
-            disabled={loading !== null}
-            className="w-full flex items-center gap-4 bg-gray-800 hover:bg-gray-700 rounded-xl px-4 py-3 transition-all disabled:opacity-50"
-          >
-            <span className="text-2xl">🔗</span>
-            <div className="flex-1 text-left">
-              <div className="text-white font-medium">WalletConnect</div>
-              <div className="text-xs text-gray-500">Scan QR code</div>
-            </div>
-            {loading === 'walletconnect' && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
           </button>
         </div>
         
