@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useAccount, useConnect, useDisconnect, useReadContract } from 'wagmi'
 import { baseAccount } from '@wagmi/connectors'
-import { ABI, CONTRACT_ADDRESS } from '@/lib/constants'
+import { ABI, CONTRACT_ADDRESS } from '@/lib/abi/contract'
 import { InitiateSwap } from '@/components/InitiateSwap'
 import { WithdrawPanel } from '@/components/WithdrawPanel'
 
