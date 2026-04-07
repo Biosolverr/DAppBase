@@ -1,111 +1,39 @@
 'use client'
 
 import { useState } from 'react'
-
-declare global {
-  interface Window {
-    ethereum?: any
-    coinbaseWalletExtension?: any
-  }
-}
+import { useConnect } from 'wagmi'
+import { baseAccount, injected } from '@wagmi/connectors'
 
 export function WalletSelector({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState<string | null>(null)
+  const { connect } = useConnect()
 
-  // ========== ПОДКЛЮЧЕНИЕ BASE ACCOUNT (ИСПРАВЛЕНО) ==========
-  const connectBaseAccount = async () => {
-    setLoading('base')
+  const handleConnect = async (type: string) => {
+    setLoading(type)
     setError('')
     
     try {
-      // Динамический импорт с правильной обработкой
-      const wagmi = await import('wagmi')
-      const connectors = await import('@wagmi/connectors')
+      let connector
       
-      const { connect } = wagmi
-      const { baseAccount } = connectors
-      
-      // Создаём коннектор с правильными параметрами
-      const connector = baseAccount({ 
-        appName: 'SecureSwap',
-        appLogoUrl: 'https://d-app-base.vercel.app/logo.png'
-      })
+      if (type === 'base') {
+        connector = baseAccount({ 
+          appName: 'SecureSwap',
+          appLogoUrl: 'https://d-app-base.vercel.app/logo.png'
+        })
+      } else if (type === 'metamask') {
+        connector = injected({ target: 'metaMask' })
+      } else if (type === 'coinbase') {
+        connector = injected({ target: 'coinbaseWallet' })
+      } else {
+        connector = injected({ target: 'walletConnect' })
+      }
       
       await connect({ connector })
       onClose()
-      
     } catch (err: any) {
-      console.error('Base Account error:', err)
-      setError(err?.message || 'Failed to connect Base Account. Make sure you have Coinbase Wallet extension installed.')
-    } finally {
-      setLoading(null)
-    }
-  }
-
-  // ========== ПОДКЛЮЧЕНИЕ META MASK ==========
-  const connectMetaMask = async () => {
-    setLoading('metamask')
-    setError('')
-    
-    try {
-      if (!window.ethereum) {
-        throw new Error('MetaMask not installed. Install it first.')
-      }
-      
-      const accounts = await window.ethereum.request({
-        method: 'eth_requestAccounts'
-      })
-      
-      if (!accounts || accounts.length === 0) {
-        throw new Error('No accounts found. Unlock MetaMask.')
-      }
-      
-      window.location.reload()
-      
-    } catch (err: any) {
-      setError(err.message || 'Failed to connect MetaMask')
-    } finally {
-      setLoading(null)
-    }
-  }
-
-  // ========== ПОДКЛЮЧЕНИЕ COINBASE WALLET ==========
-  const connectCoinbase = async () => {
-    setLoading('coinbase')
-    setError('')
-    
-    try {
-      if (window.coinbaseWalletExtension) {
-        const accounts = await window.coinbaseWalletExtension.request({
-          method: 'eth_requestAccounts'
-        })
-        
-        if (!accounts || accounts.length === 0) {
-          throw new Error('No accounts found. Unlock Coinbase Wallet.')
-        }
-        
-        window.location.reload()
-        return
-      }
-      
-      if (window.ethereum?.isCoinbaseWallet === true) {
-        const accounts = await window.ethereum.request({
-          method: 'eth_requestAccounts'
-        })
-        
-        if (!accounts || accounts.length === 0) {
-          throw new Error('No accounts found. Unlock Coinbase Wallet.')
-        }
-        
-        window.location.reload()
-        return
-      }
-      
-      throw new Error('Coinbase Wallet not installed.')
-      
-    } catch (err: any) {
-      setError(err.message || 'Failed to connect Coinbase Wallet')
+      console.error(err)
+      setError(err?.message || `Failed to connect to ${type}`)
     } finally {
       setLoading(null)
     }
@@ -128,9 +56,9 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
         <div className="space-y-3">
           {/* Base Account */}
           <button
-            onClick={connectBaseAccount}
+            onClick={() => handleConnect('base')}
             disabled={loading !== null}
-            className="w-full flex items-center gap-4 bg-gray-800 hover:bg-gray-700 rounded-xl px-4 py-3 transition-all disabled:opacity-50"
+            className="w-full flex items-center gap-4 bg-gray-800 hover:bg-gray-700 rounded-xl px-4 py-3"
           >
             <span className="text-2xl">🔵</span>
             <div className="flex-1 text-left">
@@ -142,9 +70,9 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
           
           {/* Coinbase Wallet */}
           <button
-            onClick={connectCoinbase}
+            onClick={() => handleConnect('coinbase')}
             disabled={loading !== null}
-            className="w-full flex items-center gap-4 bg-gray-800 hover:bg-gray-700 rounded-xl px-4 py-3 transition-all disabled:opacity-50"
+            className="w-full flex items-center gap-4 bg-gray-800 hover:bg-gray-700 rounded-xl px-4 py-3"
           >
             <span className="text-2xl">🟦</span>
             <div className="flex-1 text-left">
@@ -156,9 +84,9 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
           
           {/* MetaMask */}
           <button
-            onClick={connectMetaMask}
+            onClick={() => handleConnect('metamask')}
             disabled={loading !== null}
-            className="w-full flex items-center gap-4 bg-gray-800 hover:bg-gray-700 rounded-xl px-4 py-3 transition-all disabled:opacity-50"
+            className="w-full flex items-center gap-4 bg-gray-800 hover:bg-gray-700 rounded-xl px-4 py-3"
           >
             <span className="text-2xl">🦊</span>
             <div className="flex-1 text-left">
@@ -169,9 +97,7 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         
-        <p className="text-gray-500 text-xs text-center mt-6">
-          By connecting, you agree to the terms of service
-        </p>
+        <p className="text-gray-500 text-xs text-center mt-6">By connecting, you agree to the terms of service</p>
       </div>
     </div>
   )
