@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { useAccount, useConnect, useDisconnect, useReadContract } from 'wagmi'
 import { baseAccount } from '@wagmi/connectors'
 import { ABI, CONTRACT_ADDRESS } from '@/lib/abi/contract'
-import { InitiateSwap } from '@/components/escrow/InitiateSwap'
-import { WithdrawPanel } from '@/components/escrow/WithdrawPanel'
+import { InitiateSwap } from '@/components/InitiateSwap'
+import { WithdrawPanel } from '@/components/WithdrawPanel'
 
 type Tab = 'swaps' | 'initiate' | 'reputation' | 'collusion'
 
