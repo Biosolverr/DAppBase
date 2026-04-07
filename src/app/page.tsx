@@ -17,7 +17,6 @@ export default function Home() {
   const [lookupId, setLookupId] = useState('')
   const [lookedUp, setLookedUp] = useState<`0x${string}` | null>(null)
 
-  // Получение данных свапа
   const { data: lookupSwap, refetch: refetchSwap } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: ABI,
@@ -26,7 +25,6 @@ export default function Home() {
     query: { enabled: !!lookedUp },
   })
 
-  // Получение репутации
   const { data: reputation } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: ABI,
@@ -71,7 +69,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Header */}
       <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-sm border-b border-gray-800">
         <div className="max-w-lg mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -87,10 +84,7 @@ export default function Home() {
               <span className="text-xs text-gray-400">
                 {address?.slice(0, 6)}...{address?.slice(-4)}
               </span>
-              <button
-                onClick={() => disconnect()}
-                className="text-xs text-gray-400 hover:text-white transition"
-              >
+              <button onClick={() => disconnect()} className="text-xs text-gray-400 hover:text-white transition">
                 Disconnect
               </button>
             </div>
@@ -98,25 +92,20 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Main content */}
       <div className="max-w-lg mx-auto px-4 py-4">
-        {/* Withdraw Panel */}
         {address && (
           <div className="mb-4">
             <WithdrawPanel />
           </div>
         )}
 
-        {/* Tabs */}
         <div className="flex rounded-xl overflow-hidden mb-6 bg-gray-900 border border-gray-800">
           {tabs.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setTab(key)}
               className={`flex-1 py-2.5 text-xs font-medium transition-all ${
-                tab === key
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-400 hover:text-white'
+                tab === key ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
               {label}
@@ -124,7 +113,6 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Swaps Tab */}
         {tab === 'swaps' && (
           <div className="space-y-4">
             <div className="flex gap-2">
@@ -146,10 +134,6 @@ export default function Home() {
               <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Swap ID:</span>
-                    <span className="font-mono text-xs">{lookedUp.slice(0, 10)}...</span>
-                  </div>
-                  <div className="flex justify-between">
                     <span className="text-gray-400">State:</span>
                     <span className="text-blue-400">
                       {['EMPTY', 'INITIATED', 'FUNDED', 'COMPLETED', 'REFUNDED', 'CANCELLED'][(lookupSwap as any).state]}
@@ -167,24 +151,15 @@ export default function Home() {
               </div>
             )}
 
-            {lookedUp && lookupSwap && (lookupSwap as any).state === 0 && (
-              <div className="text-center text-gray-400 py-8">
-                Swap not found
-              </div>
-            )}
-
             {!lookedUp && (
               <div className="text-center text-gray-400 py-8">
                 <p className="mb-2">No swaps loaded</p>
-                <p className="text-xs text-gray-500">
-                  Paste a Swap ID above or go to "+ New" to create a swap
-                </p>
+                <p className="text-xs text-gray-500">Paste a Swap ID above or go to "+ New" to create a swap</p>
               </div>
             )}
           </div>
         )}
 
-        {/* Initiate Tab */}
         {tab === 'initiate' && (
           <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
             <h2 className="text-lg font-bold mb-4">Create New Swap</h2>
@@ -192,7 +167,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Reputation Tab */}
         {tab === 'reputation' && reputation && (
           <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
             <h2 className="text-lg font-bold mb-4">Your Reputation</h2>
@@ -202,14 +176,6 @@ export default function Home() {
                 <span className="text-green-400">{(reputation as any)[0]?.toString() || '0'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Griefed:</span>
-                <span className="text-red-400">{(reputation as any)[1]?.toString() || '0'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Victimized:</span>
-                <span className="text-yellow-400">{(reputation as any)[2]?.toString() || '0'}</span>
-              </div>
-              <div className="flex justify-between">
                 <span className="text-gray-400">Score:</span>
                 <span className="text-blue-400">{(reputation as any)[5]?.toString() || '0'}</span>
               </div>
@@ -217,20 +183,10 @@ export default function Home() {
           </div>
         )}
 
-        {/* Collusion Tab */}
         {tab === 'collusion' && (
           <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
             <h2 className="text-lg font-bold mb-4">Collusion Check</h2>
-            <div className="space-y-3">
-              <input
-                type="text"
-                placeholder="Enter address to check"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm outline-none focus:border-blue-500"
-              />
-              <button className="w-full bg-gray-800 text-gray-300 py-2 rounded-lg text-sm hover:bg-gray-700 transition">
-                Check Address
-              </button>
-            </div>
+            <p className="text-gray-400 text-sm">Enter two addresses to check if they are flagged for collusion.</p>
           </div>
         )}
       </div>
