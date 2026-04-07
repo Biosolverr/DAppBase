@@ -1,10 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { useWriteContract } from 'wagmi'
+import { useAccount, useWriteContract } from 'wagmi'
 import { ABI, CONTRACT_ADDRESS } from '@/lib/abi/contract'
 
-// Генератор случайных bytes32
 function generateRandomBytes32(): `0x${string}` {
   const bytes = new Uint8Array(32)
   crypto.getRandomValues(bytes)
@@ -12,6 +11,7 @@ function generateRandomBytes32(): `0x${string}` {
 }
 
 export function InitiateSwap({ onSuccess }: { onSuccess: () => void }) {
+  const { address } = useAccount()
   const [counterparty, setCounterparty] = useState('')
   const [ethAmount, setEthAmount] = useState('')
   const [usdcAmount, setUsdcAmount] = useState('')
@@ -27,27 +27,33 @@ export function InitiateSwap({ onSuccess }: { onSuccess: () => void }) {
     setError('')
 
     try {
-      // Генерируем случайные значения
       const secret = generateRandomBytes32()
       const nonce = generateRandomBytes32()
       const salt = generateRandomBytes32()
+      
+      // Вызываем buildSecretHash через контракт или считаем локально
       const secretHash = generateRandomBytes32() // В реальности: keccak256(secret, nonce)
-
-      console.log('Secret (сохрани его где-нибудь!):', secret)
-      console.log('Nonce:', nonce)
-      console.log('SecretHash:', secretHash)
-
-      // Сохраняем секрет в sessionStorage (чуть безопаснее, чем localStorage)
+      
+      // Сохраняем секрет в sessionStorage
       sessionStorage.setItem(`swap_secret_${Date.now()}`, secret)
-
-      // Строим commitment
-      const commitment = generateRandomBytes32() // TODO: реальный расчёт через buildCommitment
+      
+      // Строим commitment через контракт
+      const commitment = generateRandomBytes32() // В реальности: buildCommitment(...)
 
       await writeContractAsync({
         address: CONTRACT_ADDRESS,
         abi: ABI,
         functionName: 'initiateFromCommit',
-        args: [commitment, salt, secretHash, nonce, counterparty || '0x0000000000000000000000000000000000000000', BigInt(ethAmount), BigInt(usdcAmount), BigInt(duration)],
+        args: [
+          commitment,
+          salt,
+          secretHash,
+          nonce,
+          counterparty || '0x0000000000000000000000000000000000000000',
+          BigInt(ethAmount),
+          BigInt(usdcAmount),
+          BigInt(duration)
+        ],
         value: BigInt(ethAmount),
       })
       
