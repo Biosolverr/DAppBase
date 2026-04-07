@@ -1,20 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { useAccount, useConnect, useDisconnect, useReadContract } from 'wagmi'
-import { baseAccount } from '@wagmi/connectors'
+import { useAccount, useDisconnect, useReadContract } from 'wagmi'
 import { ABI, CONTRACT_ADDRESS } from '@/lib/abi/contract'
 import { InitiateSwap } from '@/components/InitiateSwap'
 import { WithdrawPanel } from '@/components/WithdrawPanel'
 import { NetworkWarning } from '@/components/NetworkWarning'
 import { CooldownGuard } from '@/components/CooldownGuard'
+import { WalletSelector } from '@/components/WalletSelector'
 
 type Tab = 'swaps' | 'initiate' | 'reputation' | 'collusion'
 
 export default function Home() {
-  const { address, isConnected } = useAccount()
-  const { connect, isPending } = useConnect()
+  const { address, isConnected, connector } = useAccount()
   const { disconnect } = useDisconnect()
+  const [showWalletSelector, setShowWalletSelector] = useState(false)
   const [tab, setTab] = useState<Tab>('swaps')
   const [lookupId, setLookupId] = useState('')
   const [lookedUp, setLookedUp] = useState<`0x${string}` | null>(null)
@@ -35,6 +35,16 @@ export default function Home() {
     query: { enabled: !!address },
   })
 
+  // Имя подключённого кошелька
+  const getWalletName = () => {
+    const name = connector?.name || ''
+    if (name.toLowerCase().includes('base')) return 'Base Account'
+    if (name.toLowerCase().includes('coinbase')) return 'Coinbase Wallet'
+    if (name.toLowerCase().includes('metamask')) return 'MetaMask'
+    if (name.toLowerCase().includes('walletconnect')) return 'WalletConnect'
+    return name || 'Wallet'
+  }
+
   if (!isConnected) {
     return (
       <>
@@ -52,15 +62,17 @@ export default function Home() {
               Trustless ETH to USDC atomic swaps on Base
             </p>
             <button
-              onClick={() => connect({ connector: baseAccount({ appName: 'SecureSwap' }) })}
-              disabled={isPending}
-              className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium disabled:opacity-50"
+              onClick={() => setShowWalletSelector(true)}
+              className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition"
             >
-              {isPending ? 'Connecting...' : 'Connect Base Account'}
+              Connect Wallet
             </button>
-            <p className="text-gray-500 text-xs mt-4">Powered by Base Account SDK</p>
+            <p className="text-gray-500 text-xs mt-4">
+              Base Account • Coinbase Wallet • MetaMask • WalletConnect
+            </p>
           </div>
         </div>
+        {showWalletSelector && <WalletSelector onClose={() => setShowWalletSelector(false)} />}
       </>
     )
   }
@@ -88,6 +100,9 @@ export default function Home() {
                 <span className="font-bold text-white">SecureSwap</span>
               </div>
               <div className="flex items-center gap-3">
+                <span className="text-xs px-2 py-1 bg-gray-800 rounded-lg text-gray-300">
+                  {getWalletName()}
+                </span>
                 <span className="text-xs text-gray-400">
                   {address?.slice(0, 6)}...{address?.slice(-4)}
                 </span>
@@ -196,8 +211,26 @@ export default function Home() {
                   <span className="text-green-400">{(reputation as any)[0]?.toString() || '0'}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-gray-400">Griefed:</span>
+                  <span className="text-red-400">{(reputation as any)[1]?.toString() || '0'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Victimized:</span>
+                  <span className="text-yellow-400">{(reputation as any)[2]?.toString() || '0'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Cancelled:</span>
+                  <span className="text-orange-400">{(reputation as any)[3]?.toString() || '0'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Volume (Gwei):</span>
+                  <span>{(reputation as any)[4]?.toString() || '0'}</span>
+                </div>
+                <div className="flex justify-between pt-2 border-t border-gray-800">
                   <span className="text-gray-400">Score:</span>
-                  <span className="text-blue-400">{(reputation as any)[5]?.toString() || '0'}</span>
+                  <span className={`font-bold ${(reputation as any)[5] >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {(reputation as any)[5]?.toString() || '0'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -207,6 +240,21 @@ export default function Home() {
             <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
               <h2 className="text-lg font-bold mb-4">Collusion Check</h2>
               <p className="text-gray-400 text-sm">Enter two addresses to check if they are flagged for collusion.</p>
+              <div className="mt-4 space-y-3">
+                <input
+                  type="text"
+                  placeholder="Address A"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 text-white text-sm"
+                />
+                <input
+                  type="text"
+                  placeholder="Address B"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 text-white text-sm"
+                />
+                <button className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-xl text-sm font-medium transition">
+                  Check Pair
+                </button>
+              </div>
             </div>
           )}
         </div>
