@@ -1,7 +1,7 @@
 'use client'
 
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
-import { ABI, CONTRACT_ADDRESS } from '@/lib/constants'
+import { ABI, CONTRACT_ADDRESS } from '@/lib/abi/contract'
 import { useState } from 'react'
 
 export function WithdrawPanel() {
