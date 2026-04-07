@@ -1,1 +1,0 @@
-export { CONTRACT_ADDRESS, USDC_ADDRESS, USDC_SEPOLIA, SWAP_STATES, ABI } from '@/lib/constants'
