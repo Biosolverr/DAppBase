@@ -4,6 +4,12 @@ import { useState } from 'react'
 import { useConnect } from 'wagmi'
 import { baseAccount, injected } from '@wagmi/connectors'
 
+declare global {
+  interface Window {
+    ethereum?: any
+  }
+}
+
 export function WalletSelector({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState<string | null>(null)
@@ -21,10 +27,19 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
           appName: 'SecureSwap',
           appLogoUrl: 'https://d-app-base.vercel.app/logo.png'
         })
-      } else if (type === 'metamask') {
-        connector = injected({ target: 'metaMask' })
       } else if (type === 'coinbase') {
         connector = injected({ target: 'coinbaseWallet' })
+      } else if (type === 'metamask') {
+        // СПЕЦИАЛЬНАЯ ОБРАБОТКА ДЛЯ METAMASK
+        if (!window.ethereum || !window.ethereum.isMetaMask) {
+          throw new Error('MetaMask not installed. Please install it first.')
+        }
+        
+        // Запрашиваем доступ напрямую
+        await window.ethereum.request({ method: 'eth_requestAccounts' })
+        
+        // Подключаем через wagmi
+        connector = injected({ target: () => window.ethereum })
       } else {
         connector = injected({ target: 'walletConnect' })
       }
@@ -58,7 +73,7 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
           <button
             onClick={() => handleConnect('base')}
             disabled={loading !== null}
-            className="w-full flex items-center gap-4 bg-gray-800 hover:bg-gray-700 rounded-xl px-4 py-3"
+            className="w-full flex items-center gap-4 bg-gray-800 hover:bg-gray-700 rounded-xl px-4 py-3 transition-all disabled:opacity-50"
           >
             <span className="text-2xl">🔵</span>
             <div className="flex-1 text-left">
@@ -72,7 +87,7 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
           <button
             onClick={() => handleConnect('coinbase')}
             disabled={loading !== null}
-            className="w-full flex items-center gap-4 bg-gray-800 hover:bg-gray-700 rounded-xl px-4 py-3"
+            className="w-full flex items-center gap-4 bg-gray-800 hover:bg-gray-700 rounded-xl px-4 py-3 transition-all disabled:opacity-50"
           >
             <span className="text-2xl">🟦</span>
             <div className="flex-1 text-left">
@@ -86,7 +101,7 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
           <button
             onClick={() => handleConnect('metamask')}
             disabled={loading !== null}
-            className="w-full flex items-center gap-4 bg-gray-800 hover:bg-gray-700 rounded-xl px-4 py-3"
+            className="w-full flex items-center gap-4 bg-gray-800 hover:bg-gray-700 rounded-xl px-4 py-3 transition-all disabled:opacity-50"
           >
             <span className="text-2xl">🦊</span>
             <div className="flex-1 text-left">
@@ -97,7 +112,9 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         
-        <p className="text-gray-500 text-xs text-center mt-6">By connecting, you agree to the terms of service</p>
+        <p className="text-gray-500 text-xs text-center mt-6">
+          By connecting, you agree to the terms of service
+        </p>
       </div>
     </div>
   )
