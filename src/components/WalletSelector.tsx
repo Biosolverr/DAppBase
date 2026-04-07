@@ -1,128 +1,168 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useConnect } from 'wagmi'
+import { useState } from 'react'
 import { baseAccount } from '@wagmi/connectors'
-import { injected } from 'wagmi/connectors'
+
+declare global {
+  interface Window {
+    ethereum?: any
+    coinbaseWalletExtension?: any
+  }
+}
 
 interface WalletOption {
   id: string
   name: string
   icon: string
   description?: string
-  getConnector: () => any
+  connect: () => Promise<any>
 }
-
-declare global {
-  interface Window {
-    ethereum?: any
-    coinbaseWalletExtension?: any
-    CoinbaseWalletSDK?: any
-  }
-}
-
-const wallets: WalletOption[] = [
-  {
-    id: 'base',
-    name: 'Base Account',
-    icon: '🔵',
-    description: 'Smart wallet on Base',
-    getConnector: () => baseAccount({ appName: 'SecureSwap' })
-  },
-  {
-    id: 'coinbase',
-    name: 'Coinbase Wallet',
-    icon: '🟦',
-    description: 'Extension or mobile app',
-    getConnector: () => {
-      // Приоритет 1: Coinbase Wallet extension
-      if (window.coinbaseWalletExtension) {
-        return injected({ target: () => window.coinbaseWalletExtension })
-      }
-      // Приоритет 2: Стандартный injected для Coinbase
-      return injected({ target: 'coinbaseWallet' })
-    }
-  },
-  {
-    id: 'metamask',
-    name: 'MetaMask',
-    icon: '🦊',
-    description: 'Browser extension',
-    getConnector: () => {
-      if (window.ethereum?.isMetaMask) {
-        return injected({ target: () => window.ethereum })
-      }
-      return injected({ target: 'metaMask' })
-    }
-  },
-  {
-    id: 'walletconnect',
-    name: 'WalletConnect',
-    icon: '🔗',
-    description: 'Scan QR code',
-    getConnector: () => injected({ target: 'walletConnect' })
-  }
-]
 
 export function WalletSelector({ onClose }: { onClose: () => void }) {
-  const { connect, connectors, isPending, error: connectError } = useConnect()
   const [error, setError] = useState('')
   const [connectingId, setConnectingId] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (connectError) {
-      setError(connectError.message)
-    }
-  }, [connectError])
-
-  // Проверяем, установлен ли Coinbase Wallet
-  const isCoinbaseInstalled = () => {
-    return !!window.coinbaseWalletExtension || (window.ethereum?.isCoinbaseWallet === true)
-  }
-
-  // Проверяем, установлен ли MetaMask
+  // Проверка установки MetaMask
   const isMetaMaskInstalled = () => {
-    return window.ethereum?.isMetaMask === true && !window.ethereum?.isCoinbaseWallet
+    return window.ethereum?.isMetaMask === true
   }
+
+  // Проверка установки Coinbase Wallet
+  const isCoinbaseInstalled = () => {
+    return !!window.coinbaseWalletExtension || window.ethereum?.isCoinbaseWallet === true
+  }
+
+  // Подключение через Base Account (через Wagmi)
+  const connectBaseAccount = async () => {
+    const { connect } = await import('wagmi')
+    const connector = baseAccount({ appName: 'SecureSwap' })
+    await connect({ connector })
+  }
+
+  // ========== ПРЯМОЕ ПОДКЛЮЧЕНИЕ META MASK ==========
+  const connectMetaMask = async () => {
+    if (!window.ethereum) {
+      throw new Error('No Ethereum wallet found. Please install MetaMask or Coinbase Wallet.')
+    }
+    
+    if (!isMetaMaskInstalled()) {
+      throw new Error('MetaMask is not installed. Please install it first.')
+    }
+    
+    // Запрашиваем доступ к аккаунтам
+    const accounts = await window.ethereum.request({
+      method: 'eth_requestAccounts'
+    })
+    
+    if (!accounts || accounts.length === 0) {
+      throw new Error('No accounts found. Please unlock MetaMask.')
+    }
+    
+    // Подключаем через Wagmi с явным указанием провайдера
+    const { connect } = await import('wagmi')
+    const { injected } = await import('@wagmi/connectors')
+    
+    const connector = injected({
+      target: () => window.ethereum
+    })
+    
+    await connect({ connector })
+  }
+
+  // ========== ПРЯМОЕ ПОДКЛЮЧЕНИЕ COINBASE WALLET ==========
+  const connectCoinbase = async () => {
+    // Приоритет 1: Coinbase Wallet extension
+    if (window.coinbaseWalletExtension) {
+      const accounts = await window.coinbaseWalletExtension.request({
+        method: 'eth_requestAccounts'
+      })
+      
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts found. Please unlock Coinbase Wallet.')
+      }
+      
+      const { connect } = await import('wagmi')
+      const { injected } = await import('@wagmi/connectors')
+      
+      const connector = injected({
+        target: () => window.coinbaseWalletExtension
+      })
+      
+      await connect({ connector })
+      return
+    }
+    
+    // Приоритет 2: Coinbase через window.ethereum (если он активен)
+    if (window.ethereum?.isCoinbaseWallet === true) {
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      })
+      
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts found. Please unlock Coinbase Wallet.')
+      }
+      
+      const { connect } = await import('wagmi')
+      const { injected } = await import('@wagmi/connectors')
+      
+      const connector = injected({
+        target: () => window.ethereum
+      })
+      
+      await connect({ connector })
+      return
+    }
+    
+    // Если ничего не сработало — предлагаем установить
+    throw new Error('Coinbase Wallet is not installed. Please install it first.')
+  }
+
+  // Подключение через WalletConnect (через Wagmi)
+  const connectWalletConnect = async () => {
+    const { connect } = await import('wagmi')
+    const { injected } = await import('@wagmi/connectors')
+    
+    const connector = injected({ target: 'walletConnect' })
+    await connect({ connector })
+  }
+
+  const wallets: WalletOption[] = [
+    {
+      id: 'base',
+      name: 'Base Account',
+      icon: '🔵',
+      description: 'Smart wallet on Base',
+      connect: connectBaseAccount
+    },
+    {
+      id: 'coinbase',
+      name: 'Coinbase Wallet',
+      icon: '🟦',
+      description: isCoinbaseInstalled() ? '✓ Extension found' : '⚠️ Not installed',
+      connect: connectCoinbase
+    },
+    {
+      id: 'metamask',
+      name: 'MetaMask',
+      icon: '🦊',
+      description: isMetaMaskInstalled() ? '✓ Extension found' : '⚠️ Not installed',
+      connect: connectMetaMask
+    },
+    {
+      id: 'walletconnect',
+      name: 'WalletConnect',
+      icon: '🔗',
+      description: 'Scan QR code with any wallet',
+      connect: connectWalletConnect
+    }
+  ]
 
   const handleConnect = async (wallet: WalletOption) => {
     setError('')
     setConnectingId(wallet.id)
     
     try {
-      // Дополнительные проверки перед подключением
-      if (wallet.id === 'coinbase' && !isCoinbaseInstalled()) {
-        // Предлагаем установить Coinbase Wallet
-        const shouldInstall = confirm(
-          'Coinbase Wallet extension is not installed.\n\n' +
-          'Would you like to install it?'
-        )
-        if (shouldInstall) {
-          window.open('https://www.coinbase.com/wallet/download', '_blank')
-        }
-        setError('Coinbase Wallet not installed. Please install it first.')
-        setConnectingId(null)
-        return
-      }
-      
-      if (wallet.id === 'metamask' && !isMetaMaskInstalled()) {
-        const shouldInstall = confirm(
-          'MetaMask extension is not installed.\n\n' +
-          'Would you like to install it?'
-        )
-        if (shouldInstall) {
-          window.open('https://metamask.io/download/', '_blank')
-        }
-        setError('MetaMask not installed. Please install it first.')
-        setConnectingId(null)
-        return
-      }
-      
-      const connector = wallet.getConnector()
-      
-      console.log(`🔄 Connecting to ${wallet.name}...`)
-      
-      await connect({ connector })
+      await wallet.connect()
       onClose()
     } catch (err: any) {
       console.error(err)
@@ -147,46 +187,27 @@ export function WalletSelector({ onClose }: { onClose: () => void }) {
         )}
         
         <div className="space-y-3">
-          {wallets.map((wallet) => {
-            // Определяем статус установки для отображения
-            let isInstalled = true
-            let installUrl = ''
-            
-            if (wallet.id === 'coinbase') {
-              isInstalled = isCoinbaseInstalled()
-              installUrl = 'https://www.coinbase.com/wallet/download'
-            }
-            if (wallet.id === 'metamask') {
-              isInstalled = isMetaMaskInstalled()
-              installUrl = 'https://metamask.io/download/'
-            }
-            
-            return (
-              <button
-                key={wallet.id}
-                onClick={() => handleConnect(wallet)}
-                disabled={isPending || connectingId !== null}
-                className="w-full flex items-center gap-4 bg-gray-800 hover:bg-gray-700 rounded-xl px-4 py-3 transition-all disabled:opacity-50 group"
-              >
-                <span className="text-2xl">{wallet.icon}</span>
-                <div className="flex-1 text-left">
-                  <div className="text-white font-medium">{wallet.name}</div>
-                  {!isInstalled && (
-                    <div className="text-xs text-yellow-400">⚠️ Not installed</div>
-                  )}
-                  {isInstalled && wallet.description && (
-                    <div className="text-xs text-gray-500">{wallet.description}</div>
-                  )}
-                </div>
-                {connectingId === wallet.id && (
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          {wallets.map((wallet) => (
+            <button
+              key={wallet.id}
+              onClick={() => handleConnect(wallet)}
+              disabled={connectingId !== null}
+              className="w-full flex items-center gap-4 bg-gray-800 hover:bg-gray-700 rounded-xl px-4 py-3 transition-all disabled:opacity-50"
+            >
+              <span className="text-2xl">{wallet.icon}</span>
+              <div className="flex-1 text-left">
+                <div className="text-white font-medium">{wallet.name}</div>
+                {wallet.description && (
+                  <div className={`text-xs ${wallet.description.includes('Not') ? 'text-yellow-400' : 'text-gray-500'}`}>
+                    {wallet.description}
+                  </div>
                 )}
-                {!isInstalled && connectingId !== wallet.id && (
-                  <span className="text-xs text-blue-400 opacity-0 group-hover:opacity-100 transition">Install →</span>
-                )}
-              </button>
-            )
-          })}
+              </div>
+              {connectingId === wallet.id && (
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              )}
+            </button>
+          ))}
         </div>
         
         <p className="text-gray-500 text-xs text-center mt-6">
