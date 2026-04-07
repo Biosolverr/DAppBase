@@ -1,7 +1,6 @@
 export const CONTRACT_ADDRESS = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`
 
 export const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as `0x${string}`
-export const USDC_SEPOLIA = '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as `0x${string}`
 
 export const SWAP_STATES = ['EMPTY', 'INITIATED', 'FUNDED', 'COMPLETED', 'REFUNDED', 'CANCELLED']
 
@@ -103,18 +102,4 @@ export const ABI = [
     inputs: [{ name: 'secret', type: 'bytes32' }, { name: 'nonce', type: 'bytes32' }],
     outputs: [{ name: '', type: 'bytes32' }],
   },
-  { name: 'Initiated', type: 'event',
-    inputs: [
-      { name: 'swapId', type: 'bytes32', indexed: true }, { name: 'initiator', type: 'address', indexed: true },
-      { name: 'counterparty', type: 'address', indexed: true }, { name: 'ethAmount', type: 'uint256', indexed: false },
-      { name: 'usdcAmount', type: 'uint256', indexed: false }, { name: 'aCollateral', type: 'uint256', indexed: false },
-      { name: 'bCollateral', type: 'uint256', indexed: false }, { name: 'aPremium', type: 'uint256', indexed: false },
-      { name: 'deadline', type: 'uint256', indexed: false }, { name: 'revealDeadline', type: 'uint256', indexed: false },
-      { name: 'nonce', type: 'bytes32', indexed: false },
-    ],
-  },
-  { name: 'Funded', type: 'event', inputs: [{ name: 'swapId', type: 'bytes32', indexed: true }, { name: 'counterparty', type: 'address', indexed: true }] },
-  { name: 'Completed', type: 'event', inputs: [{ name: 'swapId', type: 'bytes32', indexed: true }, { name: 'secret', type: 'bytes32', indexed: false }] },
-  { name: 'Refunded', type: 'event', inputs: [{ name: 'swapId', type: 'bytes32', indexed: true }, { name: 'griefed', type: 'bool', indexed: false }, { name: 'caller', type: 'address', indexed: true }] },
-  { name: 'Cancelled', type: 'event', inputs: [{ name: 'swapId', type: 'bytes32', indexed: true }] },
 ] as const
