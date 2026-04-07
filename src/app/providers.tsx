@@ -4,16 +4,17 @@ import { WagmiProvider } from 'wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { http, createConfig, cookieStorage, createStorage } from 'wagmi'
 import { base } from 'wagmi/chains'
-import { baseAccount, injected } from '@wagmi/connectors'
+import { baseAccount } from '@wagmi/connectors'
 
 const queryClient = new QueryClient()
 
 const config = createConfig({
   chains: [base],
   connectors: [
-    baseAccount({ appName: 'SecureSwap' }),
-    injected({ target: 'metaMask' }),
-    injected({ target: 'coinbaseWallet' }),
+    baseAccount({
+      appName: 'SecureSwap',
+      appLogoUrl: 'https://d-app-base.vercel.app/logo.png',
+    }),
   ],
   storage: createStorage({
     storage: cookieStorage,
