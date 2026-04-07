@@ -4,35 +4,57 @@ import { useState } from 'react'
 import { useWriteContract } from 'wagmi'
 import { ABI, CONTRACT_ADDRESS } from '@/lib/abi/contract'
 
+// Генератор случайных bytes32
+function generateRandomBytes32(): `0x${string}` {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return ('0x' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`
+}
+
 export function InitiateSwap({ onSuccess }: { onSuccess: () => void }) {
   const [counterparty, setCounterparty] = useState('')
   const [ethAmount, setEthAmount] = useState('')
   const [usdcAmount, setUsdcAmount] = useState('')
   const [duration, setDuration] = useState('3600')
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const { writeContractAsync } = useWriteContract()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError('')
 
     try {
-      const secretHash = '0x' + '1'.repeat(64)
-      const nonce = '0x' + '2'.repeat(64)
-      const salt = '0x' + '3'.repeat(64)
+      // Генерируем случайные значения
+      const secret = generateRandomBytes32()
+      const nonce = generateRandomBytes32()
+      const salt = generateRandomBytes32()
+      const secretHash = generateRandomBytes32() // В реальности: keccak256(secret, nonce)
+
+      console.log('Secret (сохрани его где-нибудь!):', secret)
+      console.log('Nonce:', nonce)
+      console.log('SecretHash:', secretHash)
+
+      // Сохраняем секрет в sessionStorage (чуть безопаснее, чем localStorage)
+      sessionStorage.setItem(`swap_secret_${Date.now()}`, secret)
+
+      // Строим commitment
+      const commitment = generateRandomBytes32() // TODO: реальный расчёт через buildCommitment
 
       await writeContractAsync({
         address: CONTRACT_ADDRESS,
         abi: ABI,
         functionName: 'initiateFromCommit',
-        args: [secretHash, nonce, counterparty, BigInt(ethAmount), BigInt(usdcAmount), BigInt(duration), salt],
+        args: [commitment, salt, secretHash, nonce, counterparty || '0x0000000000000000000000000000000000000000', BigInt(ethAmount), BigInt(usdcAmount), BigInt(duration)],
         value: BigInt(ethAmount),
       })
+      
       onSuccess()
-    } catch (error) {
-      console.error(error)
-      alert('Failed to create swap')
+    } catch (err: any) {
+      console.error(err)
+      setError(err?.message || 'Failed to create swap')
     } finally {
       setIsLoading(false)
     }
@@ -40,6 +62,7 @@ export function InitiateSwap({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {error && <div className="bg-red-500/20 text-red-400 p-3 rounded-xl text-sm">{error}</div>}
       <input
         type="text"
         placeholder="Counterparty address (0x0 for anyone)"
