@@ -1,18 +1,18 @@
-'use client'
+'use client';
 
-import { WagmiProvider } from 'wagmi'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { http, createConfig, cookieStorage, createStorage } from 'wagmi'
-import { base } from 'wagmi/chains'
-import { baseAccount } from '@wagmi/connectors'
-import { Attribution } from "ox/erc8021"
+import { WagmiProvider } from 'wagmi';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { http, createConfig, cookieStorage, createStorage } from 'wagmi';
+import { base } from 'wagmi/chains';
+import { baseAccount } from '@wagmi/connectors';
+import { erc8021 } from 'ox';
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient();
 
-// ТВОЙ BUILDER CODE ОТ BASE.DEV
-const DATA_SUFFIX = Attribution.toDataSuffix({
-  codes: ["bc_mxglfaw8"],
-})
+// Твой Builder Code от Base.dev
+const DATA_SUFFIX = erc8021.Attribution.toDataSuffix({
+  codes: ['bc_mxglfaw8'],
+});
 
 const config = createConfig({
   chains: [base],
@@ -22,15 +22,13 @@ const config = createConfig({
       appLogoUrl: 'https://d-app-base.vercel.app/logo.png',
     }),
   ],
-  storage: createStorage({
-    storage: cookieStorage,
-  }),
+  storage: createStorage({ storage: cookieStorage }),
   ssr: true,
   transports: {
     [base.id]: http(),
   },
-  dataSuffix: DATA_SUFFIX, // ← ДОБАВЛЕНО
-})
+  dataSuffix: DATA_SUFFIX,
+});
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -39,5 +37,5 @@ export function Providers({ children }: { children: React.ReactNode }) {
         {children}
       </QueryClientProvider>
     </WagmiProvider>
-  )
+  );
 }
