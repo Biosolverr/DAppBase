@@ -1,18 +1,12 @@
-'use client'
+'use client';
 
-import { WagmiProvider } from 'wagmi'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { http, createConfig, cookieStorage, createStorage } from 'wagmi'
-import { base } from 'wagmi/chains'
-import { baseAccount } from '@wagmi/connectors'
-import { Attribution } from "ox/erc8021"
+import { WagmiProvider } from 'wagmi';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { http, createConfig, cookieStorage, createStorage } from 'wagmi';
+import { base } from 'wagmi/chains';
+import { baseAccount } from '@wagmi/connectors';
 
-const queryClient = new QueryClient()
-
-// ТВОЙ BUILDER CODE
-const DATA_SUFFIX = Attribution.toDataSuffix({
-  codes: ["bc_mxglfaw8"],
-})
+const queryClient = new QueryClient();
 
 const config = createConfig({
   chains: [base],
@@ -27,8 +21,8 @@ const config = createConfig({
   transports: {
     [base.id]: http(),
   },
-  dataSuffix: DATA_SUFFIX,
-})
+  // dataSuffix временно убран
+});
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -37,5 +31,5 @@ export function Providers({ children }: { children: React.ReactNode }) {
         {children}
       </QueryClientProvider>
     </WagmiProvider>
-  )
+  );
 }
