@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useWriteContract } from 'wagmi'
 import toast from 'react-hot-toast'
 import { ABI, CONTRACT_ADDRESS } from '@/lib/abi/contract'
@@ -14,6 +14,7 @@ interface SwapCardProps {
 
 export function SwapCard({ swapId, swap, userAddress, onRefresh }: SwapCardProps) {
   const [loading, setLoading] = useState(false)
+  const [savedSecret, setSavedSecret] = useState<string | null>(null)
   const { writeContractAsync } = useWriteContract()
 
   const state = swap.state as number
@@ -25,6 +26,33 @@ export function SwapCard({ swapId, swap, userAddress, onRefresh }: SwapCardProps
   const stateLabels = ['EMPTY', 'INITIATED', 'FUNDED', 'COMPLETED', 'REFUNDED', 'CANCELLED']
   const stateColors: Record<number, string> = {
     0: '#6B7280', 1: '#F59E0B', 2: '#3B82F6', 3: '#10B981', 4: '#8B5CF6', 5: '#EF4444'
+  }
+
+  // Загружаем сохранённый секрет из sessionStorage
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem(`swap_secret_${swapId}`)
+      if (stored) setSavedSecret(stored)
+    } catch (e) { /* ignore */ }
+  }, [swapId])
+
+  // Скачать секрет в файл
+  const downloadSecret = () => {
+    if (!savedSecret) {
+      toast.error('No secret found for this swap')
+      return
+    }
+    
+    const blob = new Blob([savedSecret], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `secret_${swapId.slice(0, 10)}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    toast.success('Secret saved to file', { icon: '💾' })
   }
 
   const handleAction = async (action: string, args: any[]) => {
@@ -57,8 +85,8 @@ export function SwapCard({ swapId, swap, userAddress, onRefresh }: SwapCardProps
 
   return (
     <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-      {/* Header: Swap ID + ссылка на BaseScan */}
-      <div className="flex items-center justify-between">
+      {/* Header: Swap ID + ссылка на BaseScan + кнопка сохранения секрета */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono text-gray-500">{swapId.slice(0, 10)}...</span>
           <a
@@ -71,12 +99,23 @@ export function SwapCard({ swapId, swap, userAddress, onRefresh }: SwapCardProps
             ↗
           </a>
         </div>
-        <span
-          className="text-xs px-2 py-0.5 rounded-full"
-          style={{ background: stateColors[state] + '20', color: stateColors[state] }}
-        >
-          {stateLabels[state]}
-        </span>
+        <div className="flex items-center gap-2">
+          {savedSecret && (isInitiated || isFunded) && isInitiator && (
+            <button
+              onClick={downloadSecret}
+              className="text-xs text-gray-400 hover:text-yellow-400 transition"
+              title="Download secret (backup)"
+            >
+              💾 Save secret
+            </button>
+          )}
+          <span
+            className="text-xs px-2 py-0.5 rounded-full"
+            style={{ background: stateColors[state] + '20', color: stateColors[state] }}
+          >
+            {stateLabels[state]}
+          </span>
+        </div>
       </div>
 
       {/* Progress bar */}
