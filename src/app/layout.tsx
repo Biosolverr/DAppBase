@@ -5,7 +5,21 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'SecureSwap',
-  description: 'Trustless atomic swaps between ETH and USDC on Base chain',
+  description: 'Trustless atomic swaps between ETH and USDC on Base chain. MAD collateral, reputation scoring, anti-griefing.',
+  keywords: 'atomic swap, base chain, eth, usdc, defi, secure swap, trustless',
+  authors: [{ name: 'SecureSwap Team' }],
+  openGraph: {
+    title: 'SecureSwap - Atomic ETH/USDC Swaps on Base',
+    description: 'Trustless peer-to-peer atomic swaps between ETH and USDC on Base with MAD collateral.',
+    url: 'https://d-app-base.vercel.app',
+    siteName: 'SecureSwap',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'SecureSwap - Atomic ETH/USDC Swaps on Base',
+    description: 'Trustless peer-to-peer atomic swaps on Base.',
+  },
 }
 
 export default function RootLayout({
@@ -27,16 +41,12 @@ export default function RootLayout({
                 border: '1px solid #2a2d38',
               },
               success: {
-                iconTheme: {
-                  primary: '#10B981',
-                  secondary: '#fff',
-                },
+                iconTheme: { primary: '#10B981', secondary: '#fff' },
+                duration: 5000,
               },
               error: {
-                iconTheme: {
-                  primary: '#EF4444',
-                  secondary: '#fff',
-                },
+                iconTheme: { primary: '#EF4444', secondary: '#fff' },
+                duration: 5000,
               },
             }}
           />
