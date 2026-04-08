@@ -5,8 +5,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { http, createConfig, cookieStorage, createStorage } from 'wagmi'
 import { base } from 'wagmi/chains'
 import { baseAccount } from '@wagmi/connectors'
+import { Attribution } from "ox/erc8021"
 
 const queryClient = new QueryClient()
+
+// ТВОЙ BUILDER CODE ОТ BASE.DEV
+const DATA_SUFFIX = Attribution.toDataSuffix({
+  codes: ["bc_mxglfaw8"],
+})
 
 const config = createConfig({
   chains: [base],
@@ -23,6 +29,7 @@ const config = createConfig({
   transports: {
     [base.id]: http(),
   },
+  dataSuffix: DATA_SUFFIX, // ← ДОБАВЛЕНО
 })
 
 export function Providers({ children }: { children: React.ReactNode }) {
