@@ -1,151 +1,157 @@
 'use client'
+
 import { useState } from 'react'
 import { useWriteContract } from 'wagmi'
 import toast from 'react-hot-toast'
-import { Button, Badge, Modal, Input } from '@/components/ui'
 import { ABI, CONTRACT_ADDRESS } from '@/lib/abi/contract'
-import { formatEthAmount, formatUsdcAmount, formatTimeLeft, SWAP_STATE_COLORS, SWAP_STATE_LABELS } from '@/lib/utils/crypto'
 
-export function SwapCard({ swapId, swap, userAddress, onRefresh }: {
-  swapId: `0x${string}`; swap: any; userAddress: `0x${string}`; onRefresh?: () => void
-}) {
-  const { writeContractAsync } = useWriteContract()
+interface SwapCardProps {
+  swapId: `0x${string}`
+  swap: any
+  userAddress: `0x${string}`
+  onRefresh?: () => void
+}
+
+export function SwapCard({ swapId, swap, userAddress, onRefresh }: SwapCardProps) {
   const [loading, setLoading] = useState(false)
-  const [modal, setModal] = useState<'fund' | 'complete' | 'claim' | 'refund' | 'cancel' | null>(null)
-  const [secretInput, setSecretInput] = useState('')
+  const { writeContractAsync } = useWriteContract()
 
   const state = swap.state as number
   const isInitiator = swap.initiator?.toLowerCase() === userAddress?.toLowerCase()
   const isCounterparty = swap.counterparty?.toLowerCase() === userAddress?.toLowerCase()
-  const now = Math.floor(Date.now() / 1000)
-  const timeLeftSec = Math.max(0, Number(swap.deadline) - now)
-  const revealOpen = now <= Number(swap.revealDeadline) + 15
+  const isFunded = state === 2
+  const isInitiated = state === 1
 
-  const savedSecret = Object.keys(localStorage)
-    .filter(k => k.startsWith('swap_pending_'))
-    .map(k => { try { return JSON.parse(localStorage.getItem(k) || '{}') } catch { return {} } })
-    .find(d => d.secret)?.secret || ''
+  const stateLabels = ['EMPTY', 'INITIATED', 'FUNDED', 'COMPLETED', 'REFUNDED', 'CANCELLED']
+  const stateColors: Record<number, string> = {
+    0: '#6B7280', 1: '#F59E0B', 2: '#3B82F6', 3: '#10B981', 4: '#8B5CF6', 5: '#EF4444'
+  }
 
-  const tx = async (fn: () => Promise<any>, msg: string) => {
+  const handleAction = async (action: string, args: any[]) => {
     setLoading(true)
-    const tid = toast.loading(msg)
+    const tid = toast.loading(`${action} in progress...`)
     try {
-      await fn()
+      const hash = await writeContractAsync({
+        address: CONTRACT_ADDRESS,
+        abi: ABI,
+        functionName: action,
+        args,
+      })
       toast.dismiss(tid)
-      toast.success('Done!')
-      setModal(null)
+      toast.success(`${action} successful!`, {
+        duration: 5000,
+        icon: '🎉',
+      })
       onRefresh?.()
-    } catch (e: any) {
+    } catch (err: any) {
       toast.dismiss(tid)
-      toast.error(e.shortMessage || e.message || 'Error')
+      toast.error(err?.shortMessage || err?.message || `${action} failed`)
     } finally {
       setLoading(false)
     }
   }
 
-  const wc = writeContractAsync as any
+  // Прогресс-бар статуса
+  const steps = ['Initiated', 'Funded', 'Completed']
+  const currentStep = state === 1 ? 0 : state === 2 ? 1 : state === 3 ? 2 : -1
 
   return (
-    <div className="rounded-2xl p-4 space-y-3 fade-up" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+    <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+      {/* Header: Swap ID + ссылка на BaseScan */}
       <div className="flex items-center justify-between">
-        <span className="text-xs font-mono text-gray-500">{swapId.slice(0, 10)}...</span>
-        <Badge label={SWAP_STATE_LABELS[state]} color={SWAP_STATE_COLORS[state]} />
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono text-gray-500">{swapId.slice(0, 10)}...</span>
+          <a
+            href={`https://basescan.org/tx/${swapId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-500 hover:text-blue-400 transition"
+            title="View on BaseScan"
+          >
+            ↗
+          </a>
+        </div>
+        <span
+          className="text-xs px-2 py-0.5 rounded-full"
+          style={{ background: stateColors[state] + '20', color: stateColors[state] }}
+        >
+          {stateLabels[state]}
+        </span>
       </div>
+
+      {/* Progress bar */}
+      {currentStep >= 0 && (
+        <div className="flex gap-1">
+          {steps.map((label, idx) => (
+            <div key={idx} className="flex-1">
+              <div className={`h-1 rounded-full ${idx <= currentStep ? 'bg-blue-500' : 'bg-gray-700'}`} />
+              <span className="text-[10px] text-gray-500">{label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Amounts */}
       <div className="flex items-center gap-3">
         <div className="flex-1 bg-[#0A0B0D] rounded-xl p-3">
           <p className="text-xs text-gray-400 mb-1">ETH</p>
-          <p className="font-bold text-green-400">{formatEthAmount(swap.ethAmount)}</p>
+          <p className="font-bold text-green-400">{Number(swap.ethAmount) / 1e18} ETH</p>
         </div>
         <span className="text-gray-500">↔</span>
         <div className="flex-1 bg-[#0A0B0D] rounded-xl p-3">
           <p className="text-xs text-gray-400 mb-1">USDC</p>
-          <p className="font-bold text-blue-400">{formatUsdcAmount(swap.usdcAmount)}</p>
+          <p className="font-bold text-blue-400">{Number(swap.usdcAmount) / 1e6} USDC</p>
         </div>
-      </div>
-      <div className="space-y-1 text-xs">
-        <div className="flex justify-between">
-          <span className="text-gray-400">Role</span>
-          <span className={isInitiator ? 'text-yellow-400' : isCounterparty ? 'text-blue-400' : 'text-gray-400'}>
-            {isInitiator ? 'Initiator' : isCounterparty ? 'Counterparty' : 'Observer'}
-          </span>
-        </div>
-        {state <= 2 && (
-          <div className="flex justify-between">
-            <span className="text-gray-400">Time left</span>
-            <span className={timeLeftSec < 3600 ? 'text-red-400' : 'text-white'}>{formatTimeLeft(timeLeftSec)}</span>
-          </div>
-        )}
-        {state === 2 && (
-          <div className="flex justify-between">
-            <span className="text-gray-400">Reveal window</span>
-            <span className={revealOpen ? 'text-green-400' : 'text-red-400'}>{revealOpen ? 'Open' : 'Closed'}</span>
-          </div>
-        )}
-      </div>
-      <div className="flex flex-wrap gap-2 pt-1">
-        {state === 1 && isCounterparty && (
-          <Button size="sm" onClick={() => setModal('fund')} loading={loading}>Fund (USDC)</Button>
-        )}
-        {state === 2 && isInitiator && revealOpen && (
-          <Button size="sm" onClick={() => setModal('complete')}>Complete</Button>
-        )}
-        {state === 2 && isCounterparty && revealOpen && (
-          <Button size="sm" variant="secondary" onClick={() => setModal('claim')}>Claim</Button>
-        )}
-        {(state === 1 || state === 2) && (isInitiator || isCounterparty) && !revealOpen && (
-          <Button size="sm" variant="danger" onClick={() => setModal('refund')}>Refund</Button>
-        )}
-        {state === 1 && isInitiator && timeLeftSec > 0 && (
-          <Button size="sm" variant="ghost" onClick={() => setModal('cancel')}>Cancel</Button>
-        )}
       </div>
 
-      {modal === 'fund' && (
-        <Modal title="Fund Swap" onClose={() => setModal(null)}>
-          <p className="text-sm text-gray-400 mb-4">
-            You will deposit <strong className="text-white">{formatUsdcAmount(BigInt(swap.usdcAmount) + BigInt(swap.bCollateral))} USDC</strong> (principal + 5% collateral).
-          </p>
-          <Button fullWidth onClick={() => tx(() => wc({ address: CONTRACT_ADDRESS, abi: ABI, functionName: 'fund', args: [swapId] }), 'Funding...')} loading={loading}>
-            Confirm Fund
-          </Button>
-        </Modal>
-      )}
-      {modal === 'complete' && (
-        <Modal title="Complete Swap" onClose={() => setModal(null)}>
-          <Input label="Secret (bytes32)" value={secretInput || savedSecret} onChange={setSecretInput} placeholder="0x..." hint="Auto-filled if saved" />
-          <div className="mt-3">
-            <Button fullWidth onClick={() => tx(() => wc({ address: CONTRACT_ADDRESS, abi: ABI, functionName: 'complete', args: [swapId, (secretInput || savedSecret) as `0x${string}`] }), 'Completing...')} loading={loading}>
-              Reveal and Complete
-            </Button>
-          </div>
-        </Modal>
-      )}
-      {modal === 'claim' && (
-        <Modal title="Claim Swap" onClose={() => setModal(null)}>
-          <Input label="Secret (bytes32)" value={secretInput} onChange={setSecretInput} placeholder="0x..." />
-          <div className="mt-3">
-            <Button fullWidth onClick={() => tx(() => wc({ address: CONTRACT_ADDRESS, abi: ABI, functionName: 'claimAsCounterparty', args: [swapId, secretInput as `0x${string}`] }), 'Claiming...')} loading={loading}>
-              Claim ETH
-            </Button>
-          </div>
-        </Modal>
-      )}
-      {modal === 'refund' && (
-        <Modal title="Refund Swap" onClose={() => setModal(null)}>
-          <p className="text-sm text-gray-400 mb-4">The swap expired. Reclaim your funds.</p>
-          <Button fullWidth variant="danger" onClick={() => tx(() => wc({ address: CONTRACT_ADDRESS, abi: ABI, functionName: 'refund', args: [swapId] }), 'Refunding...')} loading={loading}>
-            Confirm Refund
-          </Button>
-        </Modal>
-      )}
-      {modal === 'cancel' && (
-        <Modal title="Cancel Swap" onClose={() => setModal(null)}>
-          <p className="text-sm text-gray-400 mb-4">Cancel before expiry. 2% premium will be burned.</p>
-          <Button fullWidth variant="danger" onClick={() => tx(() => wc({ address: CONTRACT_ADDRESS, abi: ABI, functionName: 'cancel', args: [swapId] }), 'Cancelling...')} loading={loading}>
-            Confirm Cancel
-          </Button>
-        </Modal>
-      )}
+      {/* Action buttons */}
+      <div className="flex flex-wrap gap-2 pt-1">
+        {isInitiated && isCounterparty && (
+          <button
+            onClick={() => handleAction('fund', [swapId])}
+            disabled={loading}
+            className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs disabled:opacity-50"
+          >
+            Fund (USDC)
+          </button>
+        )}
+        {isFunded && isInitiator && (
+          <button
+            onClick={() => handleAction('complete', [swapId, '0x' + '1'.repeat(64)])}
+            disabled={loading}
+            className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs disabled:opacity-50"
+          >
+            Complete
+          </button>
+        )}
+        {isFunded && isCounterparty && (
+          <button
+            onClick={() => handleAction('claimAsCounterparty', [swapId, '0x' + '1'.repeat(64)])}
+            disabled={loading}
+            className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs disabled:opacity-50"
+          >
+            Claim
+          </button>
+        )}
+        {(state === 1 || state === 2) && (isInitiator || isCounterparty) && (
+          <button
+            onClick={() => handleAction('refund', [swapId])}
+            disabled={loading}
+            className="px-3 py-1.5 bg-gray-600 text-white rounded-lg text-xs disabled:opacity-50"
+          >
+            Refund
+          </button>
+        )}
+        {state === 1 && isInitiator && (
+          <button
+            onClick={() => handleAction('cancel', [swapId])}
+            disabled={loading}
+            className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
     </div>
   )
 }
