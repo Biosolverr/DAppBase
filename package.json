@@ -24,7 +24,8 @@
     "autoprefixer": "^10.4.16",
     "@metamask/jazzicon": "^2.0.0",
     "react-hot-toast": "^2.4.1",
-    "ox": "0.6.7"
+    "ox": "0.6.7",
+    "@web3modal/wagmi": "^5.1.0"
   },
   "devDependencies": {
     "@types/node": "^20",
